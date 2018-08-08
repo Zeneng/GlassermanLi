@@ -3,7 +3,7 @@ N = 2500; % Number of creditors
 NZ = 10; % Number of Z samples 
 nE = 10; % Number of epsilion samples to take PER z sample
 Nrun=100; %Number of run times
-S = 21; % Dimension of Z
+S = 2; % Dimension of Z
 
 %probability of loss bigger than tail using GlassermanLi
 a1 = zeros(1,Nrun);
@@ -23,6 +23,21 @@ L3=[];
 %Initialize data
 
 [H, BETA, tail, EAD, CN, LGC, CMM, C] = ProblemParams(N, S, false);
+
+%Plot object function
+[X,Y] = meshgrid(-20:1:20);
+L=length(X);
+Z=zeros(L,L);
+for i=1:L
+    for j=1:L
+        Z(i,j)=Object([X(i,j);Y(i,j)],H, BETA, tail, EAD, LGC);
+    end
+end
+
+surf(X,Y,-Z)
+title('tail=2.0')
+
+
 
 totalT = cputime;
 disp(strcat('RUN NUMBER',num2str(1)))
@@ -219,4 +234,5 @@ disp('naive var')
 vpa(v2(end))
 
 
+    
 

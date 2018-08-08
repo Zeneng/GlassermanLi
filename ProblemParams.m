@@ -1,5 +1,5 @@
 function [H, BETA, tail, EAD, CN, LGC, CMM, C] = ProblemParams(N, S, loadFixed)
-tail = 0.2; % cursive l in paper
+tail = 2.0; % cursive l in paper
 C = 4; % number of credit states
 
 if(loadFixed)

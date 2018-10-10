@@ -1,9 +1,15 @@
 
-N = 2500; % Number of creditors
+N = 10000; % Number of creditors
 NZ = 10; % Number of Z samples 
 nE = 10; % Number of epsilion samples to take PER z sample
-Nrun=100; %Number of run times
-S = 2; % Dimension of Z
+Nrun=1000; %Number of run times
+S = 1; % Dimension of Z
+
+%Initialize data
+
+[H, BETA, EAD, CN, LGC, CMM, C] = ProblemParams(N, S, false);
+
+tail=0.5;
 
 %probability of loss bigger than tail using GlassermanLi
 a1 = zeros(1,Nrun);
@@ -18,24 +24,52 @@ a3 = zeros(1,Nrun);
 v3 = zeros(1,Nrun);
 L3=[];
 
+%CLT find upperbond and lowerbond
+Upper=zeros(1,Nrun);
+Lower=zeros(1,Nrun);
+CLU=[];
+CLL=[];
 
 
-%Initialize data
 
-[H, BETA, tail, EAD, CN, LGC, CMM, C] = ProblemParams(N, S, false);
+
+
+
 
 %Plot object function
-[X,Y] = meshgrid(-20:1:20);
-L=length(X);
-Z=zeros(L,L);
-for i=1:L
-    for j=1:L
-        Z(i,j)=Object([X(i,j);Y(i,j)],H, BETA, tail, EAD, LGC);
-    end
-end
+%[X,Y] = meshgrid(-20:1:20);
+%L=length(X);
+%Z=zeros(L,L);
+%for i=1:L
+    %for j=1:L
+        %Z(i,j)=Object([X(i,j);Y(i,j)],H, BETA, tail, EAD, LGC);
+    %end
+%end
 
-surf(X,Y,-Z)
-title('tail=2.0')
+%surf(X,Y,-Z)
+%title('tail=2.0')
+
+%one creditor analytical solution
+%Anly1=normcdf(H(1));
+%two creditor analytical solution
+%pho=BETA(1)*BETA(2);
+%Anly2=mvncdf([-Inf -Inf],[H(1) ,H(2)],[0,0],[1 pho;pho 1]);
+
+%modify the problem into a simple constant set up
+%EAD=0.2*ones(N,1);
+%LGC=[ones(1,N);zeros(1,N)]';
+%BETA=0.5*ones(N,1);
+%pho=BETA(1)^2;
+
+%multidimensional N must be smaller than 25
+%g represents how many creditor defaults
+%g=2;
+%xl=[-Inf(1,g),H(1)*ones(1,N-g)];
+%xu=[H(1)*ones(1,g),Inf(1,N-g)];
+%mureal=zeros(0,1,N);
+%Varmat=repmat(pho,N)-diag(repmat(pho-1,1,N));
+%Anlym1=mvncdf(xl,xu,mureal,Varmat);
+%Anlym1=nchoosek(N,g)*Anlym1;
 
 
 
@@ -140,6 +174,16 @@ for r=1:Nrun
     sampleZ = randn(S,NZ);
     sampleE = randn(N,nE*NZ);
     disp(strcat('FINISH SAMPLING...',num2str(cputime - t),'s'))
+    
+    %calulate upper and lower bond
+    [~,~,~,~,~,upperb,lowerb]=DensityAtZ(sampleZ,H,BETA,tail,EAD,LGC,NZ);
+    CLU=[CLU,upperb];
+    CLL=[CLL,lowerb];
+    len=length(CLU);
+    t=tinv(0.95,len);
+    Upper(r) = mean(CLU)+t*sqrt(var(CLU)/len);
+    Lower(r) = mean(CLL)-t*sqrt(var(CLL)/len);
+    
 
     disp('BEGIN COMPUTING Y')
     t = cputime;
@@ -213,8 +257,8 @@ for r=1:Nrun
 end
 
 figure(2)
-plot(NZ*nE:NZ*nE:NZ*nE*Nrun,a1,NZ*nE:NZ*nE:NZ*nE*Nrun,a2,NZ*nE:NZ*nE:NZ*nE*Nrun,a3)
-legend('GlassermanLi','Naive1','Naive2')
+plot(NZ*nE:NZ*nE:NZ*nE*Nrun,a1,NZ*nE:NZ*nE:NZ*nE*Nrun,Upper,NZ*nE:NZ*nE:NZ*nE*Nrun,Lower,NZ*nE:NZ*nE:NZ*nE*Nrun,a2,NZ*nE:NZ*nE:NZ*nE*Nrun,a3)
+legend('GlassermanLi','Upper','Lower','Naive1','Naive2')
 title('Mean')
 xlabel('Run number')
 
@@ -222,7 +266,7 @@ figure(3)
 plot(NZ*nE:NZ*nE:NZ*nE*Nrun,v1,NZ*nE:NZ*nE:NZ*nE*Nrun,v2,NZ*nE:NZ*nE:NZ*nE*Nrun,v3)
 legend('GlassermanLi','Naive1','Naive2')
 title('Variance')
-xlabel('Run_number')
+xlabel('Run number')
 
 disp('GlassermanLi mean')
 vpa(a2(end))
